@@ -1,0 +1,74 @@
+local LED_MODE = {}
+LED_MODE.__index = LED_MODE
+
+function LED_MODE:create(val)
+  local this = {}
+  local ok, l = pcall(nvs.read, "settings", "Lampe")
+  if not ok then l = 10 end
+  this.brightness = 11 - l
+  this.name = "Fire"
+  this.cooling = 255
+  this.sparking = 120
+  this.ctr = 0
+  --Farbe und parameter übertragen
+  if val then
+    for k, v in pairs(val) do
+      this[k] = v
+    end
+  end
+  setmetatable(this, LED_MODE)
+  return this
+end
+
+--mit 25Hz aufgerufen
+function LED_MODE:update()
+  self.ctr = self.ctr + 1
+  if self.ctr == 25 then
+    self.ctr = 0
+    --0-255C
+    local function getHeat(x, y)
+      --print("x:"..x,"y:"..y)
+      return math.floor(led.leds.front[y][x].r / 3 + led.leds.front[y][x].g / 3 + led.leds.front[y][x].b / 3)
+    end
+    --0-255C
+    local function setPixel(heat, x, y)
+      --print("heat: "..heat,"x "..x,"y "..y)
+      if heat <= 85 then
+        led.leds.front[y][x]:set(heat * 3, 0, 0)
+      elseif heat <= 170 then
+        led.leds.front[y][x]:set(255, (heat - 85) * 3, 0)
+      elseif heat<=255 then
+        led.leds.front[y][x]:set(255, 255, (heat - 170) * 3)
+      end
+    end
+
+    -- Step 1.  Cool down every cell a little
+    for x = 1, 9 do
+      for y = 1, 6 do
+        --local x=1
+        local cooldown = math.floor(math.random(0, ((self.cooling * 10) / 6) + 2))
+        if cooldown > getHeat(x, y) then
+          setPixel(0, x, y)
+        else
+          setPixel(getHeat(x, y) - cooldown, x, y)
+        end
+      end
+    end
+
+    -- Step 2.  Heat from each cell drifts 'up' and diffuses a little
+    for x = 1, 9 do
+      for y = 6, 2, - 1 do
+        --local x=1
+        setPixel(math.floor(getHeat(x, y - 1) * 2 + getHeat(x, y) / 3), x, y)
+      end
+    end
+
+    -- Step 3.  Randomly ignite new 'sparks'
+    if math.random(255) < self.sparking then
+      setPixel(math.random(160, 255), 0, math.random(1, 9))
+    end
+    led.show()
+  end
+end
+
+return LED_MODE
