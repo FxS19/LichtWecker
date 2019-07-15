@@ -5,7 +5,9 @@
 mtx = thread.createmutex()
 todo = {}
 function addTodo(func)
-  todo[#todo + 1] = func
+  if #todo < 50 then
+    table.insert(todo,func)
+  end
   if type(TODOTHREAD) == "number" and thread.status(TODOTHREAD) == "suspended" then
     thread.resume(TODOTHREAD)
   end
@@ -126,23 +128,23 @@ function changeMode(newMode, arg)
 
   addTodo(function()
     for k in pairs(package.loaded) do
-    if k:find("D_") then
-      package.loaded[k] = nil
-      print(k .. " aus Speicher entfernt")
+      if k:find("D_") then
+        package.loaded[k] = nil
+        print(k .. " aus Speicher entfernt")
+      end
     end
-  end
-  local tmp, ok = require("D_"..newMode)
-  print("geladen")
-  if not ok then
-    Modus = tmp:create(arg)
-  else
-    Modus = require("D_Error"):create("Laden fehlgeschlagen")
-  end
-  --display.wait()
-  display.clear()
-  display.update()
-  display.showMenue(Modus.name)
-end)
+    local tmp, ok = require("D_"..newMode)
+    print("geladen")
+    if not ok then
+      Modus = tmp:create(arg)
+    else
+      Modus = require("D_Error"):create("Laden fehlgeschlagen")
+    end
+    --display.wait()
+    display.clear()
+    display.update()
+    display.showMenue(Modus.name)
+  end)
 end
 --Festlegen des Modi
 changeMode("TimeDisplay")
@@ -153,7 +155,7 @@ changeMode("TimeDisplay")
 pio.pin.setpull(pio.PULLUP, pio.GPIO2, pio.GPIO0, pio.GPIO13, pio.GPIO15)
 button = {counter = {}, mode = {}, active = false}
 for a = 1, 4 do
-button.counter[a] = 0
+  button.counter[a] = 0
 end
 button.mode[1] = "set"
 button.mode[2] = "up"
@@ -171,21 +173,20 @@ end
 TODO_Liste
 --]]
 TODOTHREAD=thread.start(function()
-while true do
-while #todo > 0 do
-  local task = table.remove(todo, 1)
-  if type(task) == "function" then
-    mtx:lock()
-    local ok,err = pcall(function() task() end)
-    mtx:unlock()
-    if not ok then print(err.."\n"..debug.traceback()) end
+  while true do
+    while #todo > 0 do
+      local task = table.remove(todo, 1)
+      if type(task) == "function" then
+        mtx:lock()
+        local ok,err = pcall(function() task() end)
+        mtx:unlock()
+        if not ok then print(err.."\n"..debug.traceback()) end
+      end
+    end
+    --Ausgabe ans Display
+    collectgarbage()
+    thread.suspend(TODOTHREAD)--Warten auf Aufwecken->addTodo()
   end
-end
---Ausgabe ans Display
-collectgarbage()
-thread.suspend(TODOTHREAD)--Warten auf Aufwecken->addTodo()
---thread.sleepms(40)
-end
 end,20480,nil,0,"TODO")
 
 --Clock Interrupt
@@ -193,99 +194,89 @@ end,20480,nil,0,"TODO")
 --displayTimer = tmr.attach(tmr.TMR2, 1000000, function()--jede 1 sek
 --buttons.display = true
 function updateDisplay1s()
---if not (Modus and Modus.show) then changeMode("TimeDisplay") return end
---Boot screen entfernen
-if boot then
-boot = false
-display.clear()
-end
---Zeit aktualisieren
-clock.getTime()
---zurückwechseln zur Uhr, wenn lange nichts passiert
-if(nixDoTimer == 1)then
-nixDoTimer = 0
-display.clear()
-changeMode("TimeDisplay")
-end
-if nixDoTimer > 1 then nixDoTimer = nixDoTimer - 1 end
+  --if not (Modus and Modus.show) then changeMode("TimeDisplay") return end
+  --Boot screen entfernen
+  if boot then
+    boot = false
+    display.clear()
+  end
+  --Zeit aktualisieren
+  clock.getTime()
+  --zurückwechseln zur Uhr, wenn lange nichts passiert
+  if(nixDoTimer == 1)then
+    nixDoTimer = 0
+    display.clear()
+    changeMode("TimeDisplay")
+  end
+  if nixDoTimer > 1 then nixDoTimer = nixDoTimer - 1 end
 
---Display automatisch aktualisieren
-local function x()
-display.updateBrightness(clock.osTime.hour, 10)
-Modus:show()
-end
-xpcall(x, lerror)
+  --Display automatisch aktualisieren
+  local function x()
+    display.updateBrightness(clock.osTime.hour, 10)
+    Modus:show()
+  end
+  xpcall(x, lerror)
 
---Auf Wecker pruefen --Volle Minute//Alarm vorhanden
-if clock.osTime.sec == 0 and clock.nextAlarm then
-if clock.compAlarm(clock.nextAlarm, clock.osTime) or clock.alarmOverride_D then
-  --ALARM
-  changeMode("AlarmDisplay")
-  clock.getNextAlarm()
-end
-if clock.compAlarm(clock.preAlarm, clock.osTime) or clock.alarmOverride_L then
-  --LED Alarm
-  --20
-  local ok, s = pcall(nvs.read, "settings", "AlrMin")
-  if not ok then s = 20 end
-  led.start("Sunrise", {seconds = 60 * (s + 1), offset = 0.5})
-end
-end
-collectgarbage()
-end
-
---Möglichst genauer Thread -> kein Delay
-thread.start(function ()
-local ctr = 0
-while true do
-local pin = {}
-pin[1], pin[2], pin[3], pin[4] = pio.pin.getval(pio.GPIO2, pio.GPIO0, pio.GPIO13, pio.GPIO15)
-
-for a in pairs(pin) do
-  if pin[a] == 1 then
-    button.counter[a] = 0
-  else
-    button.counter[a] = button.counter[a] + 1
-    local function x()
-      Modus[button.mode[a]](Modus)
+  --Auf Wecker pruefen --Volle Minute//Alarm vorhanden
+  if clock.osTime.sec == 0 and clock.nextAlarm then
+    if clock.compAlarm(clock.nextAlarm, clock.osTime) or clock.alarmOverride_D then
+      --ALARM
+      changeMode("AlarmDisplay")
+      clock.getNextAlarm()
     end
-    --Single Press
-    if button.counter[a] == 1 and button.active == false then
-      --print("Button: "..button.mode[a])
-      button.lock()
-      xpcall(x, print)
-      button.unlock()
-    end
-    --Long Press
-    if button.counter[a] > 20 and button.counter[a]%3==0 and button.active == false then
-      button.lock()
-      if type(Modus[button.mode[a].."_long"]) == "function" then
-        xpcall(function() Modus[button.mode[a].."_long"](Modus) end, lerror)
-      else
-        xpcall(x, lerror)
-      end
-      button.unlock()
+    if clock.compAlarm(clock.preAlarm, clock.osTime) or clock.alarmOverride_L then
+      --LED Alarm
+      --20
+      local ok, s = pcall(nvs.read, "settings", "AlrMin")
+      if not ok then s = 20 end
+      led.start("Sunrise", {seconds = 60 * (s + 1), offset = 0.5})
     end
   end
+  collectgarbage()
 end
-if led.tmr == true and led.mode.name then addTodo(function() led.update() end) end
-if ctr%25 == 0 then addTodo(function() updateDisplay1s() end) end
-ctr = ctr + 1
-collectgarbage()
-thread.sleepms(40)
-end
-end,nil,nil,1,"Updater")
 
-function u()
-Modus:up()
-end
-function d()
-Modus:down()
-end
-function s()
-Modus:set()
-end
-function n()
-Modus:next()
-end
+updaterCTR=0
+updater=tmr.attach(tmr.TMR2, 40000, function()--komischer Wert..., sollte eig. 40000 sein. liegt vermutlich an einer falschen software
+  thread.start(function ()
+    local pin = {}
+    pin[1], pin[2], pin[3], pin[4] = pio.pin.getval(pio.GPIO2, pio.GPIO0, pio.GPIO13, pio.GPIO15)
+
+    for a in pairs(pin) do
+      if pin[a] == 1 then
+        button.counter[a] = 0
+      else
+        button.counter[a] = button.counter[a] + 1
+        local function x()
+          Modus[button.mode[a]](Modus)
+        end
+        --Single Press
+        if button.counter[a] == 1 and button.active == false then
+          --print("Button: "..button.mode[a])
+          button.lock()
+          xpcall(x, print)
+          button.unlock()
+        end
+        --Long Press
+        if button.counter[a] > 20 and button.counter[a]%3==0 and button.active == false then
+          button.lock()
+          if type(Modus[button.mode[a].."_long"]) == "function" then
+            xpcall(function() Modus[button.mode[a].."_long"](Modus) end, lerror)
+          else
+            xpcall(x, lerror)
+          end
+          button.unlock()
+        end
+      end
+    end
+    if led.tmr == true and led.mode.name then addTodo(led.update) end
+    if updaterCTR%25 == 0 then addTodo(updateDisplay1s) end
+    updaterCTR = updaterCTR + 1
+    collectgarbage()
+  end,nil,nil,1,"Updater")
+end)
+updater:start()
+function u() Modus:up() end
+function d() Modus:down() end
+function s() Modus:set() end
+function n() Modus:next() end
 --end)

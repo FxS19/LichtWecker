@@ -105,7 +105,7 @@ function clock.getNextAlarm()
       if c.enabled then
         if a == 1 then
           --print("Heute")
-          print(now, "<", cInt, "and", getTimeInt(tmpres.hour, tmpres.min), ">", cInt)
+          print(now, " earlier then ", cInt, "and", getTimeInt(tmpres.hour, tmpres.min), ">", cInt)
           --Wenn später als jetzt und früher als letzter Treffer
           if now < cInt and getTimeInt(tmpres.hour, tmpres.min) > cInt then
             print("GEFUNDEN--HEUTE")
