@@ -21,7 +21,7 @@ Warning german text ahead!!!!
         ◦ auch wenn der Strom weg ist
     • Fehlende Funktionen
         ◦ Wecken bei Stromausfall → Backup Batterie fürs komplette System.
-#LOG:
+##LOG:
 vorher:
     • Geplant auf Arduino Basis
         ◦ Speicherfehler in ROM
