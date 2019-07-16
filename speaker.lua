@@ -132,7 +132,7 @@ local function listener()
       end
     end
 
-    if Modus and Modus.speaker then
+    if Modus and type(Modus.speaker)=="function" then
       local ok, err = assert(Modus.speaker,Modus,mode, data)
       if not ok then print(ok,err) end
     end

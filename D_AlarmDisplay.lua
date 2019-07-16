@@ -3,23 +3,28 @@ AlarmDisplay.__index = AlarmDisplay
 
 function AlarmDisplay:create()
   --print(os.time(clock.osTime))
-  math.randomseed(os.time(clock.osTime))
   local this = {}
-  this.track=math.random(speaker.tracks)
+  math.randomseed(os.time(clock.osTime)%1567)
+  math.random(); math.random(); math.random()
+  local arrg=math.random(1,speaker.tracks)
   this.name = "Alarm"
   this.snooze = 600
   this.cursor = 1
   this.tick = 0
   this.volume = 0
-  this.code=0
+  this.code=math.random(1,4)
   this.maxVol=15
+  this.maxcursor=6
   local ok, val = pcall(nvs.read, "settings", "Volume")
   if ok then this.maxVol = val end
   setmetatable(this, AlarmDisplay)
-  startBar(4, 55)
+  startBar(this.maxcursor, 55)
   display.dimm(255)
   speaker.send(0x06, 1)--Volume 1
   speaker.send(0x4E, 1)--Titel in Ordner 1
+  print("Track"..arrg, "Es gibt "..speaker.tracks.." Lieder")
+  speaker.send(speaker.PLAY_TRACK_FOLDER, 0x100 + arrg)--Titel in Ordner 1
+  print("gesendet")
   --speaker.send(0x0D)--Play
   return this
 end
@@ -39,11 +44,6 @@ function AlarmDisplay:show()
   if clock.osTime.sec==0 or self.snooze==599 then
     self:update()
   end
-  if self.snooze==598 then
-    print("Track"..self.track, "Es gibt "..speaker.tracks.." Lieder")
-    speaker.send(speaker.PLAY_TRACK_FOLDER, 0x100 + self.track)--Titel in Ordner 1
-    print("gesendet")
-  end
 end
 
 function AlarmDisplay:update()
@@ -60,9 +60,6 @@ function AlarmDisplay:update()
   --gdisplay.write({95, 1}, math.floor(self.snooze / 60)..":"..x)
   display.write({85, 1}, clock.osTime.hour..":"..x)
   display.setfont(gdisplay.FONT_DEJAVU18)
-  if self.code==0 then
-    self.code=math.random(4)
-  end
   display.rect({gdisplay.CENTER, 30}, 100, 18, gdisplay.BLACK, gdisplay.BLACK)
   if self.code == 1 then
     display.write({gdisplay.CENTER, 30}, "SET")
@@ -70,8 +67,10 @@ function AlarmDisplay:update()
     display.write({gdisplay.CENTER, 30}, "NEXT")
   elseif self.code == 3 then
     display.write({gdisplay.CENTER, 30}, "UP")
-  else
+  elseif self.code == 4 then
     display.write({gdisplay.CENTER, 30}, "DOWN")
+  else
+    display.write({gdisplay.CENTER, 30}, "INTERN")
   end
 end
 
@@ -90,7 +89,7 @@ function AlarmDisplay:check(id)
   self.snooze = 500
   if self.code== id then
     showBar(1)
-    if self.cursor < 4 then
+    if self.cursor < self.maxcursor then
       self.cursor = self.cursor + 1
       --self:show()
     else
@@ -98,9 +97,11 @@ function AlarmDisplay:check(id)
       return
     end
   else
-    startBar(4, 55)
+    startBar(self.maxcursor, 55)
     self.cursor = 1
   end
+  math.randomseed(os.time(clock.osTime)%1567)
+  math.random(); math.random(); math.random()
   self.code=math.random(4)
   self:update()
 end
@@ -119,15 +120,6 @@ end
 
 function AlarmDisplay:down()
   self:check(4)
-end
-
-function AlarmDisplay:speaker(mode, data)
-  if mode == speaker.FILE_NUM_FOLDER then--Titel Anzahl
-    --da es keine echten Zufallszahlen gibt, nochmal einen Seed hinterher stopfen
-    math.randomseed(os.time(clock.osTime))
-    self.track=math.random(data)
-    --print("Titel:"..data)
-  end
 end
 
 return AlarmDisplay
