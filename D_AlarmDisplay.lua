@@ -123,7 +123,8 @@ end
 
 function AlarmDisplay:speaker(mode, data)
   if mode == speaker.FILE_NUM_FOLDER then--Titel Anzahl
-    --------------------------------------------------Hier gibt es echte zufallszahlen
+    --da es keine echten Zufallszahlen gibt, nochmal einen Seed hinterher stopfen
+    math.randomseed(os.time(clock.osTime))
     self.track=math.random(data)
     --print("Titel:"..data)
   end
