@@ -114,8 +114,11 @@ end
 function showBar(inc)
   if type(inc) ~= "number" then inc = 0 end
   progressbar.progress = progressbar.progress + inc
-  display.rect({1, progressbar.y}, (128 / progressbar.steps) * progressbar.progress, 5, gdisplay.WHITE, gdisplay.WHITE)
-  display.rect({math.floor((128 / progressbar.steps) * progressbar.progress) + 1, progressbar.y}, gdisplay.RIGHT, 5, gdisplay.BLACK, gdisplay.BLACK)
+  local w=math.floor((128 / progressbar.steps) * progressbar.progress)
+  display.rect({1, progressbar.y}, w, 5, gdisplay.WHITE, gdisplay.WHITE)
+  if w<128 then
+    display.rect({w+1, progressbar.y}, 128-w, 5, gdisplay.BLACK, gdisplay.BLACK)
+  end
 end
 
 function changeMode(newMode, arg)
