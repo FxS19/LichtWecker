@@ -29,26 +29,15 @@ function Sunrise:create(val)
   this.b = math.floor(this.b/this.brightness)
 
   setmetatable(this, Sunrise)
-  --led.setColor(0, 0, 0)
   return this
 end
---[[
-led.start("Sunrise",5)
-]]
 --mit 25Hz aufgerufen
 function Sunrise:update()
 
   --Den wert der led-Farbe berechnen
   local function calcValue(input, real, percent)
     --gewünschte Farbe--Aktuelle Farbe--Prozent
-    --local l =input
     local a=math.floor(real * (1 - percent))
-    local l = math.floor(input*percent)
-    --[[
-    if real>input then
-      a=a*-1
-    end
-    --]]
     l=l+a
     if l > 255 then print("ovf") return 255 else return l end
   end
@@ -58,8 +47,6 @@ function Sunrise:update()
     --die Farbe wird über den Streifen geschmiert
     for i = 1, 6 do
       local lper = p^i
-      --print(calcValue(r,led.leds.back[i].r,p), calcValue(g,led.leds.back[i].g,p), calcValue(b,led.leds.back[i].b,p))
-
       led.leds.back[i]:set(calcValue(r, led.leds.back[i].r, lper), calcValue(g, led.leds.back[i].g, lper), calcValue(b, led.leds.back[i].b, lper))
     end
   end
@@ -81,7 +68,7 @@ function Sunrise:update()
   end
 
   self.step = self.step + 1
-  local percent = self.step / self.totalSteps --(von 0--1)
+  local percent =  (self.step *1.0) / self.totalSteps --(von 0--1)
 
   if self.step%125 == 1 then print(math.floor(percent * 100).."%") end
 
