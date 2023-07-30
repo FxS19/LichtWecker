@@ -20,7 +20,7 @@ Warning german text ahead!!!!
         ◦ auch wenn der Strom weg ist
     • Fehlende Funktionen
         ◦ Wecken bei Stromausfall → Backup Batterie fürs komplette System.
-#LOG:
+# LOG:
 vorher:
     • Geplant auf Arduino Basis
         ◦ Speicherfehler in ROM
@@ -41,6 +41,7 @@ vorher:
         ◦ ersetzt am 20180210
 Probleme:
 Display zu tief für die Box → in Frontplatte eingelassen
+
 ## 20190215:
     • Alarm Bildschirm
         ◦ Nerviges Ausschalten
@@ -60,7 +61,7 @@ math.random() liefert gleiche Zahlen → math.randomseed(int) vorher ausführen
         ◦ LED entfernt
     • Logik Level Konverter Modifikation
         ◦ LED entfernt
-##20190322
+## 20190322
     • Implementierung der Knöpfe geändert.
         ◦ Weniger Stack/RAM
         ◦ lang-drück Funktion verfügbar
